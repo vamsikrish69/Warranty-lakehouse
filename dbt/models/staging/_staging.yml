@@ -34,3 +34,22 @@ models:
           - accepted_values:
               arguments:
                 values: ['ACTIVE']
+      - name: stg_warranty_entitlements
+        columns:
+         - name: entitlement_id
+           data_tests:
+            - unique
+            - not_null
+      - name: asset_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_product_assets')
+                field: asset_id
+              config:
+                severity: warn
+      - name: warranty_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['MAIL_IN', 'ONSITE']
