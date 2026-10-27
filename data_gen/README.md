@@ -71,3 +71,22 @@ Volume check: 60 batches is about 13 MB and about 9k service-request rows, comfo
 ## Git hygiene
 
 Add to `.gitignore`: `data_gen/output/` and `data_gen/state/`. Never commit AWS keys or Databricks tokens.
+
+
+- [x] Step 5a: _sources.yml + stg_customers + tests (3 tests pass), committed and pushed 2026-10-27
+- [ ] Step 5b: remaining staging models
+  - [x] stg_product_assets: 862 rows = 862 distinct asset_id, 14 future purchase dates flagged, all asset_status = ACTIVE; 4 tests pass (unique, not_null, relationships to stg_customers, accepted_values)
+  - [~] stg_warranty_entitlements: dbt run OK 2026-10-27; check query, tests and commit still to do
+  - [ ] stg_customer_contacts, stg_service_requests (history + latest-version model), stg_repair_events, stg_case_closures
+
+  * Run dbt from /workspaces/Warranty-lakehouse/dbt. A restarted Codespace opens at the repo root, where dbt fails with "Invalid value for '--profiles-dir': Path '/home/codespace/.dbt' does not exist". Start each session with: cd /workspaces/Warranty-lakehouse/dbt && git pull --rebase && git status --short && dbt debug
+* Databricks can push commits to the repo too (it added 01_bronze_load.sql), so a plain git push can be rejected with "fetch first". Fix: git pull --rebase, then git push.
+* Paste multi-line SQL/YAML into the editor, never the terminal (bash runs each line; a heredoc pasted twice writes the second cat into the file). Save with Ctrl+S, then check: head -3 file; grep -n "cat >" file
+* A .gitignore typo (dbt/.user.ymlgi) let dbt/.user.yml get staged. Fix the pattern, then git rm --cached dbt/.user.yml. .gitignore does not untrack files that are already tracked.
+* A dbt model name must match the file name. "does not match any enabled nodes" means a wrong name; check with ls models/staging.
+* When dbt reports a Database Error, read the compiled SQL in the error or in target/compiled/... to see exactly what Databricks received.
+
+--9
+
+* warranty_entitlements: keep the raw entitlement_status unchanged (it goes stale). Staging only flags is_invalid_coverage_range. "Was the customer covered at contact time?" is derived from coverage_start/coverage_end in INT_WARRANTY_VALIDATION, because it needs the contact timestamp.
+* Test conventions: data_tests with an arguments: block; relationships tests use severity: warn; orphan AST-999999 / SR-9999999 are expected to appear on the child tables (entitlements, contacts, service requests), not on stg_product_assets.   dbt show --inline "select count(*) as total_rows, count(distinct entitlement_id) as distinct_entitlements, sum(case when is_invalid_coverage_range then 1 else 0 end) as invalid_ranges, sum(case when entitlement_status = 'ACTIVE' and coverage_end < current_date() then 1 else 0 end) as stale_active, count(distinct coverage_years) as year_values from {{ ref('stg_warranty_entitlements') }}"
