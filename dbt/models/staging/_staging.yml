@@ -13,3 +13,24 @@ models:
           - accepted_values:
               arguments:
                 values: ['North America', 'United Kingdom', 'India']
+
+  - name: stg_product_assets
+    description: One row per product asset (latest version), parsed from bronze JSON. Future purchase dates are flagged, not removed.
+    columns:
+      - name: asset_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+              config:
+                severity: warn
+      - name: asset_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ACTIVE']
