@@ -55,3 +55,39 @@ models:
           - accepted_values:
               arguments:
                 values: ['MAIL_IN', 'ONSITE']
+  
+  - name: stg_customer_contacts
+    description: One row per customer contact (latest version). Invalid channels are flagged, not removed. warranty_status_at_contact is the raw claimed status; the date-derived status lives in int_warranty_validation.
+    columns:
+      - name: contact_id
+        data_tests:
+          - unique
+          - not_null
+      - name: channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['VOICE_SUPPORT', 'CHAT_SUPPORT', 'FACEBOOK_SUPPORT', 'SOCIAL_MEDIA_SUPPORT']
+              config:
+                severity: warn
+      - name: asset_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_product_assets')
+                field: asset_id
+              config:
+                severity: warn
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+              config:
+                severity: warn
+      - name: warranty_status_at_contact
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['IN_WARRANTY', 'OUT_OF_WARRANTY']                
