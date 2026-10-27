@@ -55,7 +55,7 @@ models:
           - accepted_values:
               arguments:
                 values: ['MAIL_IN', 'ONSITE']
-  
+
   - name: stg_customer_contacts
     description: One row per customer contact (latest version). Invalid channels are flagged, not removed. warranty_status_at_contact is the raw claimed status; the date-derived status lives in int_warranty_validation.
     columns:
@@ -90,8 +90,10 @@ models:
         data_tests:
           - accepted_values:
               arguments:
-                values: ['IN_WARRANTY', 'OUT_OF_WARRANTY']    
-    - name: stg_service_requests
+                values: ['IN_WARRANTY', 'OUT_OF_WARRANTY']
+
+  - name: stg_service_requests
+    description: One row per service request (latest status version by updated_at), built on stg_service_requests_history.
     columns:
       - name: sr_id
         data_tests:
@@ -116,7 +118,8 @@ models:
                 values: ['ONSITE', 'MAIL_IN']
 
   - name: stg_service_requests_history
+    description: One row per sr_id and status change, exact duplicates removed.
     columns:
       - name: sr_id
         data_tests:
-          - not_null              
+          - not_null
