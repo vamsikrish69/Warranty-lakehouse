@@ -34,12 +34,14 @@ models:
           - accepted_values:
               arguments:
                 values: ['ACTIVE']
-      - name: stg_warranty_entitlements
-        columns:
-         - name: entitlement_id
-           data_tests:
-            - unique
-            - not_null
+
+  - name: stg_warranty_entitlements
+    description: One row per warranty entitlement (latest version). Raw entitlement_status is kept as-is (it goes stale); invalid coverage ranges are flagged, not removed.
+    columns:
+      - name: entitlement_id
+        data_tests:
+          - unique
+          - not_null
       - name: asset_id
         data_tests:
           - relationships:
