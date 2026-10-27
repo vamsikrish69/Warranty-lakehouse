@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Raw JSON records loaded from the landing volume (one row per JSON line, stored as a string).
+    database: workspace
+    schema: warranty
+    tables:
+      - name: customers
+        identifier: bronze_customers
+      - name: product_assets
+        identifier: bronze_product_assets
+      - name: warranty_entitlements
+        identifier: bronze_warranty_entitlements
+      - name: customer_contacts
+        identifier: bronze_customer_contacts
+      - name: service_requests
+        identifier: bronze_service_requests
+      - name: repair_events
+        identifier: bronze_repair_events
+      - name: case_closures
+        identifier: bronze_case_closures

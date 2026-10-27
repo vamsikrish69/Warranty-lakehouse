@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer (latest version), parsed from bronze JSON.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: region
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['North America', 'United Kingdom', 'India']

@@ -1,0 +1,11 @@
+warranty_lakehouse:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: workspace
+      schema: warranty_dbt
+      host: "{{ env_var('DATABRICKS_HOST').replace('https://', '').split('/')[0] }}"
+      http_path: /sql/1.0/warehouses/73a141633048c530
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      threads: 2

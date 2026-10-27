@@ -1,2 +1,5 @@
 data_gen/output/
 data_gen/state/
+dbt/target/
+dbt/logs/
+dbt/.user.yml
