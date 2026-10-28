@@ -123,3 +123,25 @@ models:
       - name: sr_id
         data_tests:
           - not_null
+
+  - name: stg_repair_events
+    description: One row per repair event (latest version). Invalid event types and negative cost or hours are flagged, not removed.
+    columns:
+      - name: repair_event_id
+        data_tests:
+          - unique
+          - not_null
+      - name: sr_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_service_requests')
+                field: sr_id
+              config:
+                severity: warn
+      - name: event_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['DIAGNOSED', 'PART_ORDERED', 'REPAIR_COMPLETED', 'TECH_DISPATCHED']
