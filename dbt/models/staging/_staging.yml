@@ -145,3 +145,32 @@ models:
           - accepted_values:
               arguments:
                 values: ['DIAGNOSED', 'PART_ORDERED', 'REPAIR_COMPLETED', 'TECH_DISPATCHED']
+
+  - name: stg_case_closures
+    description: One row per case closure (latest version by event_ts). Invalid CSAT scores are flagged, not removed.
+    columns:
+      - name: closure_id
+        data_tests:
+          - unique
+          - not_null
+      - name: sr_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_service_requests')
+                field: sr_id
+              config:
+                severity: warn
+      - name: closed_ts
+        data_tests:
+          - not_null
+      - name: csat_score
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+              config:
+                severity: warn
+
