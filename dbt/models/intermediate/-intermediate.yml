@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_warranty_validation
+    description: One row per customer contact. Compares the warranty status claimed at contact with the status derived from the entitlement coverage dates.
+    columns:
+      - name: contact_id
+        data_tests:
+          - unique
+          - not_null
+      - name: validated_warranty_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['IN_WARRANTY', 'OUT_OF_WARRANTY', 'NO_ENTITLEMENT', 'INVALID_COVERAGE_RANGE']
+      - name: is_claim_mismatch
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
