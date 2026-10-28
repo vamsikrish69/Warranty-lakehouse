@@ -20,3 +20,42 @@ models:
               arguments:
                 values: [true, false]
                 quote: false
+            
+  - name: int_repeat_service_requests
+    description: One row per service request. Describes the previous request on the same asset and flags follow-ups, same-issue repeats, and repeats within N days after a closure (N is the repeat_window_days variable, default 30).
+    columns:
+      - name: sr_id
+        data_tests:
+          - unique
+          - not_null
+      - name: is_follow_up_request
+        data_tests:
+          - not_null
+      - name: is_same_issue_as_prev
+        data_tests:
+          - not_null
+      - name: is_repeat_after_closure
+        data_tests:
+          - not_null
+
+unit_tests:
+  - name: test_repeat_after_closure_logic
+    description: Six made-up requests on three assets prove the follow-up, same-issue and repeat-after-closure rules.
+    model: int_repeat_service_requests
+    given:
+      - input: ref('stg_service_requests')
+        rows:
+          - {sr_id: SR-A, asset_id: AST-1, issue_category: NO_POWER, status: CLOSED, created_ts: '2026-01-01 08:00:00', closed_ts: '2026-01-03 10:00:00'}
+          - {sr_id: SR-B, asset_id: AST-1, issue_category: NO_POWER, status: NEW, created_ts: '2026-01-20 09:00:00'}
+          - {sr_id: SR-D, asset_id: AST-2, issue_category: NO_BOOT, status: CLOSED, created_ts: '2026-01-01 08:00:00', closed_ts: '2026-01-02 10:00:00'}
+          - {sr_id: SR-E, asset_id: AST-2, issue_category: DISPLAY_ISSUE, status: NEW, created_ts: '2026-03-01 09:00:00'}
+          - {sr_id: SR-F, asset_id: AST-3, issue_category: NO_POWER, status: NEW, created_ts: '2026-01-01 08:00:00'}
+          - {sr_id: SR-G, asset_id: AST-3, issue_category: NO_POWER, status: NEW, created_ts: '2026-01-01 12:00:00'}
+    expect:
+      rows:
+        - {sr_id: SR-A, is_follow_up_request: false, is_same_issue_as_prev: false, is_repeat_after_closure: false}
+        - {sr_id: SR-B, is_follow_up_request: true, is_same_issue_as_prev: true, is_repeat_after_closure: true}
+        - {sr_id: SR-D, is_follow_up_request: false, is_same_issue_as_prev: false, is_repeat_after_closure: false}
+        - {sr_id: SR-E, is_follow_up_request: true, is_same_issue_as_prev: false, is_repeat_after_closure: false}
+        - {sr_id: SR-F, is_follow_up_request: false, is_same_issue_as_prev: false, is_repeat_after_closure: false}
+        - {sr_id: SR-G, is_follow_up_request: true, is_same_issue_as_prev: true, is_repeat_after_closure: false}               
