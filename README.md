@@ -2,7 +2,7 @@
 
 A layered dbt project on Databricks that turns warranty, service-request and repair data into an SLA mart.
 
-![dbt lineage graph](docs/images/lineage.png)
+![dbt lineage graph](dbt/docs/images/lineage.png)
 
 | Layer | Models | Grain |
 |---|---|---|
