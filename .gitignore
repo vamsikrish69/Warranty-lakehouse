@@ -3,3 +3,5 @@ data_gen/state/
 dbt/target/
 dbt/logs/
 dbt/.user.yml
+/output/
+/state/
