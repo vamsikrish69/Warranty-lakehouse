@@ -1,0 +1,107 @@
+version: 2
+
+models:
+  - name: fct_service_requests
+    description: One row per service request. Combines SLA outcome, warranty status at contact, repeat flags, repair summary and closure feedback. SLA is measured to closure (closed_ts); as_of_ts is the latest data timestamp unless overridden with the as_of_ts variable.
+    columns:
+      - name: sr_id
+        data_tests:
+          - unique
+          - not_null
+      - name: asset_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_product_assets')
+                field: asset_id
+              config:
+                severity: warn
+      - name: contact_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('int_warranty_validation')
+                field: contact_id
+              config:
+                severity: warn
+      - name: priority
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['P1', 'P2', 'P3', 'P4']
+      - name: service_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ONSITE', 'MAIL_IN']
+      - name: sla_outcome
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MET', 'BREACHED', 'OPEN_OVERDUE', 'OPEN_WITHIN_SLA', 'NO_SLA_DUE']
+      - name: is_sla_breached
+        data_tests:
+          - not_null
+      - name: validated_warranty_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['IN_WARRANTY', 'OUT_OF_WARRANTY', 'NO_ENTITLEMENT', 'INVALID_COVERAGE_RANGE', 'NO_CONTACT_MATCH']
+
+  - name: mart_sla_summary
+    description: SLA performance by region and priority, built only from fct_service_requests. breach_rate counts closed-late and open-overdue requests over all requests. as_of_ts shows the time the numbers are measured at.
+    columns:
+      - name: summary_key
+        data_tests:
+          - unique
+          - not_null
+      - name: region
+        data_tests:
+          - not_null
+      - name: priority
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['P1', 'P2', 'P3', 'P4']
+      - name: total_requests
+        data_tests:
+          - not_null
+
+unit_tests:
+  - name: test_sla_outcome_rule
+    description: Six made-up requests with the clock pinned to 10 Jan 2026 prove MET, BREACHED, OPEN_OVERDUE, OPEN_WITHIN_SLA, the exact-deadline boundary and the missing-deadline case.
+    model: fct_service_requests
+    overrides:
+      vars:
+        as_of_ts: "2026-01-10 00:00:00"
+    given:
+      - input: ref('stg_service_requests')
+        rows:
+          - {sr_id: SR-1, contact_id: CON-X, asset_id: AST-1, status: CLOSED, created_ts: '2026-01-01 08:00:00', sla_due_ts: '2026-01-04 08:00:00', closed_ts: '2026-01-03 10:00:00'}
+          - {sr_id: SR-2, contact_id: CON-X, asset_id: AST-1, status: CLOSED, created_ts: '2026-01-01 08:00:00', sla_due_ts: '2026-01-04 08:00:00', closed_ts: '2026-01-05 08:00:00'}
+          - {sr_id: SR-3, contact_id: CON-X, asset_id: AST-1, status: NEW, created_ts: '2026-01-02 08:00:00', sla_due_ts: '2026-01-06 08:00:00'}
+          - {sr_id: SR-4, contact_id: CON-X, asset_id: AST-1, status: NEW, created_ts: '2026-01-08 08:00:00', sla_due_ts: '2026-01-12 08:00:00'}
+          - {sr_id: SR-5, contact_id: CON-X, asset_id: AST-1, status: CLOSED, created_ts: '2026-01-01 08:00:00', sla_due_ts: '2026-01-04 08:00:00', closed_ts: '2026-01-04 08:00:00'}
+          - {sr_id: SR-6, contact_id: CON-X, asset_id: AST-1, status: NEW, created_ts: '2026-01-01 08:00:00'}
+      - input: ref('int_warranty_validation')
+        rows:
+          - {contact_id: CON-NONE}
+      - input: ref('int_repeat_service_requests')
+        rows:
+          - {sr_id: SR-NONE}
+      - input: ref('stg_repair_events')
+        rows:
+          - {sr_id: SR-NONE}
+      - input: ref('stg_case_closures')
+        rows:
+          - {sr_id: SR-NONE, closure_id: CLS-NONE}
+    expect:
+      rows:
+        - {sr_id: SR-1, sla_outcome: MET, is_sla_breached: false, resolution_hours: 50.0, hours_until_sla_due_at_as_of: null}
+        - {sr_id: SR-2, sla_outcome: BREACHED, is_sla_breached: true, resolution_hours: 96.0, hours_until_sla_due_at_as_of: null}
+        - {sr_id: SR-3, sla_outcome: OPEN_OVERDUE, is_sla_breached: true, resolution_hours: null, hours_until_sla_due_at_as_of: -88.0}
+        - {sr_id: SR-4, sla_outcome: OPEN_WITHIN_SLA, is_sla_breached: false, resolution_hours: null, hours_until_sla_due_at_as_of: 56.0}
+        - {sr_id: SR-5, sla_outcome: MET, is_sla_breached: false, resolution_hours: 72.0, hours_until_sla_due_at_as_of: null}
+        - {sr_id: SR-6, sla_outcome: NO_SLA_DUE, is_sla_breached: false, resolution_hours: null, hours_until_sla_due_at_as_of: null}                
