@@ -65,7 +65,7 @@ models:
                 quote: false
 
   - name: mart_sla_summary
-    description: SLA performance by region and priority, built only from fct_service_requests. breach_rate counts closed-late and open-overdue requests over all requests. as_of_ts shows the time the numbers are measured at.
+    description: SLA performance by region and priority, built only from fct_service_requests. breach_rate counts closed-late and open-overdue requests over all requests. decided_requests counts requests with a known outcome (met, breached or open-overdue), and breach_rate_decided divides breaches by that count, so requests still within their SLA do not dilute it. as_of_ts shows the time the numbers are measured at.
     columns:
       - name: summary_key
         data_tests:
