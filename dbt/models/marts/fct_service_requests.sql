@@ -83,6 +83,7 @@ closures as (
         closure_id,
         resolution_code,
         csat_score,
+        is_invalid_csat,
         reopened_flag
     from {{ ref('stg_case_closures') }}
     qualify row_number() over (partition by sr_id order by closed_ts desc, closure_id desc) = 1
@@ -158,7 +159,8 @@ select
     -- closure and customer feedback
     c.closure_id,
     c.resolution_code,
-    c.csat_score,
+        c.csat_score,
+    case when c.is_invalid_csat then null else c.csat_score end                        as csat_score_clean,
     c.reopened_flag
 
 from scored s

@@ -57,6 +57,12 @@ models:
           - accepted_values:
               arguments:
                 values: ['IN_WARRANTY', 'OUT_OF_WARRANTY', 'NO_ENTITLEMENT', 'INVALID_COVERAGE_RANGE', 'NO_CONTACT_MATCH']
+      - name: csat_score_clean
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
 
   - name: mart_sla_summary
     description: SLA performance by region and priority, built only from fct_service_requests. breach_rate counts closed-late and open-overdue requests over all requests. as_of_ts shows the time the numbers are measured at.
