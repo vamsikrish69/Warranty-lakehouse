@@ -39,6 +39,6 @@ deduped as (
 select
     *,
     coalesce(event_type, '') not in
-        ('DIAGNOSED', 'PART_ORDERED', 'REPAIR_COMPLETED', 'TECH_DISPATCHED') as is_invalid_event_type,
+                ('DIAGNOSED', 'PART_ORDERED', 'PART_RECEIVED', 'DEVICE_RECEIVED', 'REPAIR_STARTED', 'REPAIR_COMPLETED', 'SHIPPED_BACK', 'TECH_DISPATCHED') as is_invalid_event_type,
     coalesce(labor_hours < 0 or repair_cost < 0, false)                      as is_negative_value
 from deduped
