@@ -30,6 +30,8 @@ agg as (
         sum(case when sla_outcome = 'OPEN_OVERDUE' then 1 else 0 end)   as open_overdue,
         sum(case when sla_outcome = 'OPEN_WITHIN_SLA' then 1 else 0 end) as open_within_sla,
         round(sum(case when is_sla_breached then 1 else 0 end) / count(*), 4) as breach_rate,
+                sum(case when sla_outcome in ('MET', 'BREACHED', 'OPEN_OVERDUE') then 1 else 0 end) as decided_requests,
+        round(sum(case when is_sla_breached then 1 else 0 end) / nullif(sum(case when sla_outcome in ('MET', 'BREACHED', 'OPEN_OVERDUE') then 1 else 0 end), 0), 4) as breach_rate_decided,
         round(avg(resolution_hours), 1)                                 as avg_resolution_hours,
         max(as_of_ts)                                                   as as_of_ts
     from base
