@@ -13,7 +13,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_product_assets')
+                to: ref('dim_assets')
                 field: asset_id
               config:
                 severity: warn
@@ -23,6 +23,14 @@ models:
               arguments:
                 to: ref('int_warranty_validation')
                 field: contact_id
+              config:
+                severity: warn
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
               config:
                 severity: warn
       - name: priority
@@ -69,6 +77,22 @@ models:
         data_tests:
           - not_null
 
+  - name: dim_customers
+    description: One row per customer (latest version). Email and phone are deliberately left out.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_assets
+    description: One row per product asset (latest version). Future purchase dates are flagged, not removed.
+    columns:
+      - name: asset_id
+        data_tests:
+          - unique
+          - not_null
+
 unit_tests:
   - name: test_sla_outcome_rule
     description: Six made-up requests with the clock pinned to 10 Jan 2026 prove MET, BREACHED, OPEN_OVERDUE, OPEN_WITHIN_SLA, the exact-deadline boundary and the missing-deadline case.
@@ -104,4 +128,4 @@ unit_tests:
         - {sr_id: SR-3, sla_outcome: OPEN_OVERDUE, is_sla_breached: true, resolution_hours: null, hours_until_sla_due_at_as_of: -88.0}
         - {sr_id: SR-4, sla_outcome: OPEN_WITHIN_SLA, is_sla_breached: false, resolution_hours: null, hours_until_sla_due_at_as_of: 56.0}
         - {sr_id: SR-5, sla_outcome: MET, is_sla_breached: false, resolution_hours: 72.0, hours_until_sla_due_at_as_of: null}
-        - {sr_id: SR-6, sla_outcome: NO_SLA_DUE, is_sla_breached: false, resolution_hours: null, hours_until_sla_due_at_as_of: null}                
+        - {sr_id: SR-6, sla_outcome: NO_SLA_DUE, is_sla_breached: false, resolution_hours: null, hours_until_sla_due_at_as_of: null}
