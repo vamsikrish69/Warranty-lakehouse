@@ -1,0 +1,14 @@
+version: 2
+
+exposures:
+  - name: warranty_sla_overview_dashboard
+    label: Warranty SLA Overview (Databricks dashboard)
+    type: dashboard
+    maturity: medium
+    url: https://dbc-ac6ec9c7-5f74.cloud.databricks.com/dashboardsv3/01f1d43885551a3eb34357f7b89a76b0/published?o=7474646619263601
+    description: SLA breach rates by priority and region, requests by SLA outcome, breach rate by SLA due date per priority, and headline counters. Reads only from the marts schema.
+    depends_on:
+      - ref('fct_service_requests')
+      - ref('mart_sla_summary')
+    owner:
+      name: vamsikrish69
