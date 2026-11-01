@@ -5,3 +5,6 @@ dbt/logs/
 dbt/.user.yml
 /output/
 /state/
+
+__pycache__/
+*.pyc
