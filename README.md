@@ -37,6 +37,8 @@ The Airflow DAG `warranty_pipeline` runs daily at 06:00 IST:
 
 The Databricks job `warranty_dbt_build` has two tasks, `bronze_load` (SQL file from this repo) and `dbt_build` (`dbt build`). It has no schedule of its own: Airflow owns the schedule. The DAG uses `max_active_runs=1` and `catchup=False`, because the generator keeps state and two overlapping runs would clash. Airflow runs in a GitHub Codespace, so it only fires while the Codespace is awake; in production this would run on a managed scheduler.
 
+**Reliability:** when an Airflow task fails for good, a push alert goes to my phone through ntfy.sh. The idempotent tasks (S3 upload, volume copy, job trigger) retry first; the generator does not, because it advances state and a retry could skip or duplicate a batch. The Databricks job also emails on failure and warns when a run takes more than 10 minutes. `dbt source freshness` runs before `dbt build` and checks `_loaded_at` on every bronze table (warn after 26 hours, error after 50), so a silent "no new data" failure stops the build instead of producing a stale dashboard.
+
 ## Data model (dbt)
 
 ![dbt lineage graph](dbt/docs/images/lineage.png)
@@ -68,6 +70,7 @@ The Databricks job `warranty_dbt_build` has two tasks, `bronze_load` (SQL file f
 - **Rules with no data coverage are unit-tested** on mocked rows (SLA outcome rule, repeat-after-closure rule).
 - **Orphans are `severity: warn`, not errors.** They are expected on child tables; the build still stops on real failures.
 - **Idempotent loads.** `COPY INTO` remembers loaded files and `s3_to_volume` copies only missing batches, so reruns never duplicate data.
+- **Freshness on load time.** Source freshness uses `_loaded_at` (when the pipeline delivered the file), not the business timestamp, because event times in the simulation are always in the past.
 
 ## Dashboard
 
