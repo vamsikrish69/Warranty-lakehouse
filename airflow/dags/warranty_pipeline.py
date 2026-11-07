@@ -9,7 +9,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import pendulum
 
@@ -31,7 +31,24 @@ BATCHES_PER_RUN = os.environ.get("BATCHES_PER_RUN", "6")  # 6 x 4h = one simulat
 sys.path.insert(0, str(GEN))
 import upload_to_volume as vol  # reuse clean_host / ensure_dir / upload_one (Files API helpers)
 
-
+def notify_failure(context):
+    """Push a phone alert when a task has failed for good (after its retries)."""
+    topic = os.environ.get("NTFY_TOPIC")
+    if not topic:
+        print("NTFY_TOPIC is not set; skipping the alert")
+        return
+    ti = context["task_instance"]
+    msg = f"{ti.dag_id} / {ti.task_id} failed (run {ti.run_id})"
+    req = urllib.request.Request(
+        f"https://ntfy.sh/{topic}",
+        data=msg.encode("utf-8"),
+        headers={"Title": "Warranty pipeline failed", "Priority": "high", "Tags": "rotating_light"},
+        method="POST",
+    )
+    try:
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:  # an alert must never crash the callback
+        print(f"could not send the alert: {e}")
 def s3_manifest_names(s3) -> set[str]:
     names = set()
     for page in s3.get_paginator("list_objects_v2").paginate(Bucket=BUCKET, Prefix=f"{PREFIX}/_manifests/"):
@@ -68,6 +85,7 @@ def volume_manifest_names(host: str, token: str) -> set[str]:
     start_date=pendulum.datetime(2026, 10, 1, tz="Asia/Calcutta"),
     catchup=False,
     max_active_runs=1,  # the generator keeps state, so two runs at once would clash
+    default_args={"on_failure_callback": notify_failure},
     tags=["warranty", "ingestion"],
 )
 def warranty_pipeline():
@@ -75,6 +93,7 @@ def warranty_pipeline():
     def generate_batch() -> list[str]:
         """Run the generator for one batch and return the names of the new manifest files."""
         manifests = OUT / "_manifests"
+    
         before = {p.name for p in manifests.glob("*.json")}
         cmd = [
             sys.executable, str(GEN / "generate_batch.py"),
@@ -92,7 +111,7 @@ def warranty_pipeline():
         print(f"new batches: {new}")
         return new
 
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=2))
     def upload_to_s3(new_manifests: list[str]) -> list[str]:
         """Upload each new batch to S3: data files first, manifest last ('batch committed')."""
         s3 = boto3.client("s3")  # credentials and region come from the AWS_* environment variables
@@ -112,7 +131,7 @@ def warranty_pipeline():
             print(f"uploaded manifest {name}")
         return new_manifests
 
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=2))
     def s3_to_volume(uploaded: list[str]) -> list[str]:
         """Copy every batch that is in S3 but not yet in the Databricks volume (data first, manifest last)."""
         host_env, token = os.environ.get("DATABRICKS_HOST"), os.environ.get("DATABRICKS_TOKEN")
@@ -151,6 +170,8 @@ def warranty_pipeline():
         task_id="run_databricks_job",
         databricks_conn_id="databricks_default",
         job_id=DATABRICKS_JOB_ID,
+        retries=1,
+        retry_delay=timedelta(minutes=5),
     )
     copied >> run_job
 
