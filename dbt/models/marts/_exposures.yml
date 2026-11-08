@@ -11,4 +11,4 @@ exposures:
       - ref('fct_service_requests')
       - ref('mart_sla_summary')
     owner:
-      name: vamsikrish69
+      name: Vamsi Krishna
