@@ -8,3 +8,10 @@ dbt/.user.yml
 
 __pycache__/
 *.pyc
+
+# local secrets and tooling
+.env
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/

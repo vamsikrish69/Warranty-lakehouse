@@ -1,0 +1,8 @@
+# Airflow lives in its OWN virtual environment, separate from dbt, to avoid dependency conflicts:
+#   python3 -m venv ~/airflow_venv
+#   ~/airflow_venv/bin/pip install -r airflow/requirements-airflow.txt \
+#     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.13.txt"
+# (change 3.13 to your Python minor version)
+apache-airflow==3.3.2
+apache-airflow-providers-databricks==7.20.0
+boto3>=1.34

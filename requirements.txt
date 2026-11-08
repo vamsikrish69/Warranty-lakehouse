@@ -1,0 +1,11 @@
+# Transformation layer (dbt). Install in the main environment:
+#   pip install -r requirements.txt
+dbt-core>=1.12,<1.13
+dbt-databricks>=1.12,<1.13
+
+# Pipeline scripts (S3 upload in the DAG, volume sync)
+boto3>=1.34
+
+# Developer tools (lint and tests)
+ruff>=0.6
+pytest>=8.0
