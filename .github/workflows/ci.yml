@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Lint, compile and test Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install ruff pytest
+      - name: Lint (syntax errors and unused or undefined names)
+        run: ruff check --select E9,F airflow data_gen tests
+      - name: Byte-compile the DAG and scripts
+        run: python -m compileall -q airflow data_gen
+      - name: Unit tests
+        run: pytest tests -q
+
+  dbt:
+    name: dbt parse (project structure, refs, YAML)
+    runs-on: ubuntu-latest
+    env:
+      # dbt parse never connects; these dummy values only satisfy env_var() in profiles.yml.
+      DATABRICKS_HOST: https://example.cloud.databricks.com
+      DATABRICKS_TOKEN: dummy
+      DATABRICKS_HTTP_PATH: /sql/1.0/warehouses/dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install "dbt-core>=1.12,<1.13" "dbt-databricks>=1.12,<1.13"
+      - name: dbt parse
+        working-directory: dbt
+        run: dbt parse --profiles-dir .

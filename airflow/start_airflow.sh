@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start Airflow (standalone) from its own virtualenv. Safe to run again: it stops the old one first.
 set -euo pipefail
-REPO=/workspaces/Warranty-lakehouse
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root, wherever it is cloned
 export AIRFLOW_HOME="$HOME/airflow"
 export AIRFLOW__CORE__DAGS_FOLDER="$REPO/airflow/dags"
 export AIRFLOW__CORE__LOAD_EXAMPLES=False

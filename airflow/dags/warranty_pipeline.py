@@ -9,7 +9,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 import pendulum
 
@@ -18,14 +18,14 @@ from botocore.exceptions import ClientError
 from airflow.sdk import dag, task
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
 
-REPO = Path("/workspaces/Warranty-lakehouse")
+REPO = Path(os.environ.get("WARRANTY_REPO", Path(__file__).resolve().parents[2]))  # repo root, auto-detected
 GEN = REPO / "data_gen"
 OUT = GEN / "output"
 STATE = GEN / "state" / "state.json"
-BUCKET = "warranty-lakehouse-raw-your-initials-2026"
+BUCKET = os.environ["S3_BUCKET"]  # set as an environment variable / Codespaces secret
 PREFIX = "raw"
 VOLUME = "/Volumes/workspace/warranty/raw/landing"
-DATABRICKS_JOB_ID = int(os.environ.get("WARRANTY_JOB_ID", "818308994668188"))  # job warranty_dbt_build
+DATABRICKS_JOB_ID = int(os.environ["WARRANTY_JOB_ID"])  # Databricks job warranty_dbt_build
 BATCHES_PER_RUN = os.environ.get("BATCHES_PER_RUN", "6")  # 6 x 4h = one simulated day per run
 
 sys.path.insert(0, str(GEN))
