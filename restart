@@ -1,4 +1,0 @@
-cd /workspaces/Warranty-lakehouse/dbt
-git pull --rebase
-git status --short
-dbt debug
