@@ -5,10 +5,12 @@ models:
     description: One row per service request. Combines SLA outcome, warranty status at contact, repeat flags, repair summary and closure feedback. SLA is measured to closure (closed_ts); as_of_ts is the latest data timestamp unless overridden with the as_of_ts variable.
     columns:
       - name: sr_id
+        description: "Service request id. The grain of this table: exactly one row per request (latest version)."
         data_tests:
           - unique
           - not_null
       - name: asset_id
+        description: "Product asset the request is about. Orphans (unknown asset ids) exist by design and are reported as warnings."
         data_tests:
           - not_null
           - relationships:
@@ -18,6 +20,7 @@ models:
               config:
                 severity: warn
       - name: contact_id
+        description: "Customer contact that led to the request. Null or unknown ids are labelled NO_CONTACT_MATCH in validated_warranty_status."
         data_tests:
           - relationships:
               arguments:
@@ -26,6 +29,7 @@ models:
               config:
                 severity: warn
       - name: customer_id
+        description: "Customer who raised the request; joins to dim_customers."
         data_tests:
           - relationships:
               arguments:
@@ -34,70 +38,114 @@ models:
               config:
                 severity: warn
       - name: priority
+        description: "Request priority, P1 (most urgent, shortest SLA) to P4."
         data_tests:
           - accepted_values:
               arguments:
                 values: ['P1', 'P2', 'P3', 'P4']
       - name: service_type
+        description: "ONSITE (technician visits) or MAIL_IN (device is posted to a repair centre). Each has its own SLA hours per priority."
         data_tests:
           - accepted_values:
               arguments:
                 values: ['ONSITE', 'MAIL_IN']
       - name: sla_outcome
+        description: "MET or BREACHED for closed requests. For open requests: OPEN_OVERDUE if the as-of time is past the due time, otherwise OPEN_WITHIN_SLA. NO_SLA_DUE if no due time exists."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['MET', 'BREACHED', 'OPEN_OVERDUE', 'OPEN_WITHIN_SLA', 'NO_SLA_DUE']
       - name: is_sla_breached
+        description: "True for BREACHED and OPEN_OVERDUE. Open requests still within their SLA are false, so use breach_rate_decided in the summary to avoid right-censoring."
         data_tests:
           - not_null
       - name: validated_warranty_status
+        description: "Warranty status derived from entitlement dates at the time of the contact (not the stale status column). NO_CONTACT_MATCH when the contact is missing."
         data_tests:
           - accepted_values:
               arguments:
                 values: ['IN_WARRANTY', 'OUT_OF_WARRANTY', 'NO_ENTITLEMENT', 'INVALID_COVERAGE_RANGE', 'NO_CONTACT_MATCH']
       - name: csat_score_clean
+        description: "Customer satisfaction score 1 to 5. Out-of-range scores (for example 9) are set to null."
         data_tests:
           - accepted_values:
               arguments:
                 values: [1, 2, 3, 4, 5]
                 quote: false
+      - name: sla_target_hours
+        description: "Hours between creation and the SLA due time."
+      - name: resolution_hours
+        description: "Hours from creation to closure. Null while the request is open."
+      - name: hours_until_sla_due_at_as_of
+        description: "For open requests, hours left until the SLA due time at as_of_ts (negative means overdue)."
+      - name: as_of_ts
+        description: "The point in time the SLA outcome is measured at. Defaults to the latest updated_at in the data; override with the as_of_ts variable."
+      - name: is_repeat_after_closure
+        description: "True when the same asset and issue returned after the previous request was closed."
+      - name: is_claim_mismatch
+        description: "True when the warranty status the customer claimed differs from the status derived from dates."
+      - name: csat_score
+        description: "Raw customer satisfaction score as received, including invalid values. Use csat_score_clean for analysis."
 
   - name: mart_sla_summary
     description: SLA performance by region and priority, built only from fct_service_requests. breach_rate counts closed-late and open-overdue requests over all requests. decided_requests counts requests with a known outcome (met, breached or open-overdue), and breach_rate_decided divides breaches by that count, so requests still within their SLA do not dilute it. as_of_ts shows the time the numbers are measured at.
     columns:
       - name: summary_key
+        description: "Region and priority joined with a pipe, for example India|P1. Unique per row."
         data_tests:
           - unique
           - not_null
       - name: region
+        description: "Customer region (for example India, UK, North America)."
         data_tests:
           - not_null
       - name: priority
+        description: "Request priority P1 to P4."
         data_tests:
           - accepted_values:
               arguments:
                 values: ['P1', 'P2', 'P3', 'P4']
       - name: total_requests
+        description: "All requests in the region and priority, open and closed."
         data_tests:
           - not_null
+      - name: decided_requests
+        description: "Requests with a known outcome: MET, BREACHED or OPEN_OVERDUE."
+      - name: breach_rate
+        description: "Breached or overdue requests divided by all requests. Understates the true rate while many requests are still open."
+      - name: breach_rate_decided
+        description: "Breached or overdue requests divided by decided_requests. Use this for trends."
+      - name: avg_resolution_hours
+        description: "Average hours from creation to closure, closed requests only."
 
   - name: dim_customers
     description: One row per customer (latest version). Email and phone are deliberately left out.
     columns:
       - name: customer_id
+        description: "Customer id. Unique; one row per customer (latest version)."
         data_tests:
           - unique
           - not_null
+      - name: customer_name
+        description: "First and last name joined."
+      - name: customer_segment
+        description: "Customer segment from the source system."
+      - name: is_valid_email
+        description: "False when the email in the source was malformed. The email itself is not exposed."
 
   - name: dim_assets
     description: One row per product asset (latest version). Future purchase dates are flagged, not removed.
     columns:
       - name: asset_id
+        description: "Asset id. Unique; one row per device (latest version)."
         data_tests:
           - unique
           - not_null
+      - name: product_family
+        description: "Product family used for grouping (for example laptops)."
+      - name: is_future_purchase_date
+        description: "True when the recorded purchase date is in the future. Flagged, not removed."
 
 unit_tests:
   - name: test_sla_outcome_rule
